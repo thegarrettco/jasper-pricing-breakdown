@@ -787,41 +787,43 @@
 </script>
 
 <!-- ============================================================
-     IFRAME HEIGHT REPORTER — for the jasperatvictoryridge.com embed.
-     Only activates when this page is inside an iframe. Viewed directly,
-     the page scrolls normally and none of this runs.
+     IFRAME HEIGHT REPORTER v2 — for the jasperatvictoryridge.com embed.
+     Only activates inside an iframe; viewed directly the page is untouched.
+     Re-broadcasts the height every second so the parent stays in sync even
+     if its listener script loads late (Entrata injects content async).
 ============================================================ -->
 <script>
 (function () {
-  /* Only act when embedded in an iframe */
   if (window.self === window.top) return;
 
-  /* Inside the iframe: the parent owns scrolling, this page never scrolls */
+  /* Inside the iframe the parent owns scrolling; this page never scrolls */
   var s = document.createElement("style");
   s.textContent = "html, body { height: auto !important; min-height: 0 !important; margin: 0; overflow: hidden !important; }";
   (document.head || document.documentElement).appendChild(s);
 
-  var last = 0;
-
-  function measure() {
+  function currentHeight() {
     var el = document.querySelector(".custom-fee-container");
-    if (!el) return;
-    var h = Math.ceil(el.getBoundingClientRect().bottom + window.pageYOffset) + 4;
-    if (h > 0 && Math.abs(h - last) > 4) {
-      last = h;
-      parent.postMessage({ type: "jasperIframeHeight", height: h }, "*");
-    }
+    if (!el) return 0;
+    return Math.ceil(el.getBoundingClientRect().bottom + window.pageYOffset) + 4;
+  }
+
+  function post() {
+    var h = currentHeight();
+    if (h > 0) parent.postMessage({ type: "jasperIframeHeight", height: h }, "*");
   }
 
   function start() {
-    var el = document.querySelector(".custom-fee-container");
-    if (!el) { setTimeout(start, 100); return; }
+    if (!document.querySelector(".custom-fee-container")) { setTimeout(start, 100); return; }
 
-    /* fires when fee rows populate, accordions toggle, or layout reflows */
-    new ResizeObserver(measure).observe(el);
-    new MutationObserver(measure).observe(el, { childList: true, subtree: true });
-    window.addEventListener("resize", measure);
-    measure();
+    /* instant updates on data load, accordion toggles, reflows */
+    new ResizeObserver(post).observe(document.querySelector(".custom-fee-container"));
+    new MutationObserver(post).observe(document.body, { childList: true, subtree: true, attributes: true });
+    window.addEventListener("resize", post);
+
+    /* heartbeat: re-announce every second so a listener that attaches
+       late (or gets re-rendered by the CMS) always syncs within ~1s */
+    setInterval(post, 1000);
+    post();
   }
 
   if (document.readyState === "loading") {
