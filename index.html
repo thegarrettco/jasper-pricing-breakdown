@@ -787,49 +787,20 @@
 </script>
 
 <!-- ============================================================
-     IFRAME HEIGHT REPORTER v2 — for the jasperatvictoryridge.com embed.
-     Only activates inside an iframe; viewed directly the page is untouched.
-     Re-broadcasts the height every second so the parent stays in sync even
-     if its listener script loads late (Entrata injects content async).
+     EMBED SCROLL MODE — for the jasperatvictoryridge.com iframe embed.
+     When this page is inside an iframe, it scrolls itself with its
+     scrollbar hidden. No parent-page JavaScript is needed at all.
+     Viewed directly (not in an iframe), the page is completely untouched.
 ============================================================ -->
 <script>
 (function () {
-  if (window.self === window.top) return;
+  if (window.self === window.top) return; /* only when embedded */
 
-  /* Inside the iframe the parent owns scrolling; this page never scrolls */
   var s = document.createElement("style");
-  s.textContent = "html, body { height: auto !important; min-height: 0 !important; margin: 0; overflow: hidden !important; }";
+  s.textContent =
+    "html, body { margin: 0; }" +
+    "html { overflow-y: scroll; overflow-x: hidden; scrollbar-width: none; -ms-overflow-style: none; }" +
+    "html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; height: 0; }";
   (document.head || document.documentElement).appendChild(s);
-
-  function currentHeight() {
-    var el = document.querySelector(".custom-fee-container");
-    if (!el) return 0;
-    return Math.ceil(el.getBoundingClientRect().bottom + window.pageYOffset) + 4;
-  }
-
-  function post() {
-    var h = currentHeight();
-    if (h > 0) parent.postMessage({ type: "jasperIframeHeight", height: h }, "*");
-  }
-
-  function start() {
-    if (!document.querySelector(".custom-fee-container")) { setTimeout(start, 100); return; }
-
-    /* instant updates on data load, accordion toggles, reflows */
-    new ResizeObserver(post).observe(document.querySelector(".custom-fee-container"));
-    new MutationObserver(post).observe(document.body, { childList: true, subtree: true, attributes: true });
-    window.addEventListener("resize", post);
-
-    /* heartbeat: re-announce every second so a listener that attaches
-       late (or gets re-rendered by the CMS) always syncs within ~1s */
-    setInterval(post, 1000);
-    post();
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start);
-  } else {
-    start();
-  }
 })();
 </script>
