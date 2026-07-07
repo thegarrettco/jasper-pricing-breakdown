@@ -20,7 +20,7 @@
 
     .custom-fee-container .heading-container {
 
-      margin-bottom: 45px;
+      margin-bottom: 0px;
 
     }
 
@@ -784,4 +784,50 @@
 
 })();
 
+</script>
+
+<!-- ============================================================
+     IFRAME HEIGHT REPORTER — for the jasperatvictoryridge.com embed.
+     Only activates when this page is inside an iframe. Viewed directly,
+     the page scrolls normally and none of this runs.
+============================================================ -->
+<script>
+(function () {
+  /* Only act when embedded in an iframe */
+  if (window.self === window.top) return;
+
+  /* Inside the iframe: the parent owns scrolling, this page never scrolls */
+  var s = document.createElement("style");
+  s.textContent = "html, body { height: auto !important; min-height: 0 !important; margin: 0; overflow: hidden !important; }";
+  (document.head || document.documentElement).appendChild(s);
+
+  var last = 0;
+
+  function measure() {
+    var el = document.querySelector(".custom-fee-container");
+    if (!el) return;
+    var h = Math.ceil(el.getBoundingClientRect().bottom + window.pageYOffset) + 4;
+    if (h > 0 && Math.abs(h - last) > 4) {
+      last = h;
+      parent.postMessage({ type: "jasperIframeHeight", height: h }, "*");
+    }
+  }
+
+  function start() {
+    var el = document.querySelector(".custom-fee-container");
+    if (!el) { setTimeout(start, 100); return; }
+
+    /* fires when fee rows populate, accordions toggle, or layout reflows */
+    new ResizeObserver(measure).observe(el);
+    new MutationObserver(measure).observe(el, { childList: true, subtree: true });
+    window.addEventListener("resize", measure);
+    measure();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start);
+  } else {
+    start();
+  }
+})();
 </script>
